@@ -1,0 +1,55 @@
+# Ignore node_modules directory
+node_modules/
+
+# Ignore environment file (if you have one)
+.env
+
+# Ignore build artifacts
+/build/
+/dist/
+/out/
+
+# Ignore any local development configuration
+config/local.js
+
+# Ignore IDE/Editor specific files
+.vscode/
+.idea/
+*.sublime-workspace
+*.sublime-project
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Ignore npm debug log
+npm-debug.log*
+
+# Ignore logs
+logs
+*.log
+
+# Ignore any backup files
+*~
+*.bak
+*.backup
+
+# Ignore dependency directories created by package managers
+/bower_components/
+/jspm_packages/
+
+# Ignore macOS system files
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Ignore Windows thumbnail cache files
+Thumbs.db
+ehthumbs.db
+
+# Ignore `.cache` directory
+.cache/
+
+# firebase creds
+serviceAccountKey.json
