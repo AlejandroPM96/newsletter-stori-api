@@ -21,62 +21,68 @@ const firestore = admin.firestore();
 const app = express();
 const port = 3000;
 
+const cors = require('cors');
+const corsOptions ={
+    credentials:true,            //access-control-allow-credentials:true
+    optionSuccessStatus:200
+}
+app.use(cors(corsOptions));
 // Middleware to parse JSON bodies
 app.use(express.json());
 
 
 const unlinkAsync = promisify(fs.unlink);
 async function cleanUploadsDir(directory: string) {
-  const files = await promisify(fs.readdir)(directory);
-  const unlinkPromises = files.map(filename => unlinkAsync(path.join(directory, filename)));
-  await Promise.all(unlinkPromises);
+    const files = await promisify(fs.readdir)(directory);
+    const unlinkPromises = files.map(filename => unlinkAsync(path.join(directory, filename)));
+    await Promise.all(unlinkPromises);
 }
 
 // Function to get newsletters object from Firestore
 async function getNewslettersByName(name: string) {
     try {
-      const querySnapshot = await firestore.collection('newsletters').where('name', '==', name).get();
-      const newsletters: any[] = [];
-  
-      querySnapshot.forEach(doc => {
+        const querySnapshot = await firestore.collection('newsletters').where('name', '==', name).get();
+        const newsletters: any[] = [];
+
+        querySnapshot.forEach(doc => {
         newsletters.push({
-          id: doc.id,
-          ...doc.data()
+            id: doc.id,
+            ...doc.data()
         });
-      });
-  
-      return newsletters;
+        });
+
+        return newsletters;
     } catch (error) {
-      console.error('Error fetching newsletters:', error);
-      throw error;
+        console.error('Error fetching newsletters:', error);
+        throw error;
     }
-  }
+}
 
 // Email sending function
 async function sendEmail(to: string, subject: string, text: string, html: string, attachmentPath: string) {
-  const transporter = nodemailer.createTransport({
-    service: 'Gmail',
-    auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS
-    }
-  });
+    const transporter = nodemailer.createTransport({
+        service: 'Gmail',
+        auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS
+        }
+    });
 
-  const mailOptions = {
-    from: process.env.EMAIL_USER,
-    to,
-    subject,
-    text,
-    html,
-    attachments: [
-      {
-        filename: path.basename(attachmentPath),
-        path: attachmentPath
-      }
-    ]
-  };
+    const mailOptions = {
+        from: process.env.EMAIL_USER,
+        to,
+        subject,
+        text,
+        html,
+        attachments: [
+        {
+            filename: path.basename(attachmentPath),
+            path: attachmentPath
+        }
+        ]
+    };
 
-  await transporter.sendMail(mailOptions);
+    await transporter.sendMail(mailOptions);
 }
 
 // Route to handle email sending
@@ -99,7 +105,7 @@ app.post('/send-newsletter', async (req: Request, res: Response) => {
     }
     const subject = newsletter.subject
     const text = newsletter.text
-    const html = "<p>This is an <strong>HTML</strong> version of the newsletter. <a href=\"{{unsubscribeUrl}}\">Unsubscribe</a></p>"
+    const html = "<div>" + text + "</div> <br /><a href=\"{{unsubscribeUrl}}\">Unsubscribe</a></p>"
     try {
         // Download file from Firebase Storage
         const file = bucket.file(attachmentPath);
@@ -125,42 +131,46 @@ app.post('/send-newsletter', async (req: Request, res: Response) => {
 
 // endpoint to register the newsletter in Firestore
 app.post('/register-newsletter', async (req: Request, res: Response) => {
-    const { name, recipientList, attachmentPath, subject, text } = req.body;
-  
+    const name  = req.body.name;
+    const recipientList = JSON.parse(req.body.recipientList);
+    const attachmentPath = req.body.attachmentPath;
+    const subject = req.body.subject;
+    const text  = req.body.text;
+
     if (!name || !Array.isArray(recipientList) || recipientList.length === 0 || !attachmentPath) {
-      return res.status(400).send('Name, recipient list, and attachment path are required.');
+        return res.status(400).send('Name, recipient list, and attachment path are required.');
     }
-  
+
     try {
-      const newsletterData = {
+        const newsletterData = {
         name,
         recipientList,
         attachmentPath,
         subject,
         text,
         createdAt: admin.firestore.FieldValue.serverTimestamp()
-      };
-  
-      await firestore.collection('newsletters').add(newsletterData);
-      res.status(200).send('Newsletter registered successfully!');
+        };
+
+        await firestore.collection('newsletters').add(newsletterData);
+        res.status(200).send('Newsletter registered successfully!');
     } catch (error) {
-      console.error('Error registering newsletter:', error);
-      res.status(500).send('Error registering newsletter.');
+        console.error('Error registering newsletter:', error);
+        res.status(500).send('Error registering newsletter.');
     }
-  });
+});
 
 // endpoint to unsubscribe
 app.get('/unsubscribe', (req: Request, res: Response) => {
-  const email = req.query.email as string;
+    const email = req.query.email as string;
 
-  if (email) {
+    if (email) {
     // Logic to handle unsubscription
     res.send(`Email ${email} has been unsubscribed.`);
-  } else {
+    } else {
     res.status(400).send('Email is required to unsubscribe.');
-  }
+    }
 });
 
 app.listen(port, () => {
-  console.log(`Server is running on http://localhost:${port}`);
+    console.log(`Server is running on http://localhost:${port}`);
 });
