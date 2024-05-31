@@ -12,7 +12,7 @@ dotenv.config();
 const serviceAccount = require('../serviceAccountKey.json');
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
-  storageBucket: 'gs://stori-newsletter-d40ca.appspot.com'  // Your Firebase Storage bucket URL
+  storageBucket: process.env.STORAGE_BUCKET_URL  // Your Firebase Storage bucket URL
 });
 
 const bucket = admin.storage().bucket();
@@ -36,6 +36,26 @@ async function cleanUploadsDir(directory: string) {
     const files = await promisify(fs.readdir)(directory);
     const unlinkPromises = files.map(filename => unlinkAsync(path.join(directory, filename)));
     await Promise.all(unlinkPromises);
+}
+// Function to get newsletters with recipient count from Firestore
+async function getNewslettersWithRecipientCount() {
+    try {
+        const querySnapshot = await firestore.collection('newsletters').get();
+        const newsletters: { name: string, recipients: number }[] = [];
+
+        querySnapshot.forEach(doc => {
+            const data = doc.data();
+            const name = data.name;
+            const recipients = Array.isArray(data.recipientList) ? data.recipientList.length : 0;
+
+            newsletters.push({ name, recipients });
+        });
+
+        return newsletters;
+    } catch (error) {
+        console.error('Error fetching newsletters:', error);
+        throw error;
+    }
 }
 
 // Function to get newsletters object from Firestore
@@ -117,7 +137,7 @@ app.post('/send-newsletter', async (req: Request, res: Response) => {
             email,
             subject,
             text,
-            html.replace('{{unsubscribeUrl}}', `http://example.com/unsubscribe?email=${encodeURIComponent(email)}`),
+            html.replace('{{unsubscribeUrl}}', process.env.API_URL + `/unsubscribe?email=${encodeURIComponent(email)}`),
             destination
         );
         }
@@ -156,6 +176,16 @@ app.post('/register-newsletter', async (req: Request, res: Response) => {
     } catch (error) {
         console.error('Error registering newsletter:', error);
         res.status(500).send('Error registering newsletter.');
+    }
+});
+
+// Endpoint to fetch newsletters
+app.get('/newsletters', async (req: Request, res: Response) => {
+    try {
+        const newsletters = await getNewslettersWithRecipientCount();
+        res.status(200).json(newsletters);
+    } catch (error) {
+        res.status(500).send('Error fetching newsletters.');
     }
 });
 
