@@ -37,6 +37,39 @@ async function cleanUploadsDir(directory: string) {
     const unlinkPromises = files.map(filename => unlinkAsync(path.join(directory, filename)));
     await Promise.all(unlinkPromises);
 }
+
+// Function to remove an email from the newsletter's recipient list
+async function removeEmailFromNewsletter(name: string, email: string) {
+    try {
+        // Query to find the document with the specified name
+        const querySnapshot = await firestore.collection('newsletters').where('name', '==', name).get();
+
+        if (querySnapshot.empty) {
+        throw new Error(`No newsletter found with the name: ${name}`);
+        }
+
+        // Assuming names are unique and only one document will be found
+        const newsletterDoc = querySnapshot.docs[0];
+        const newsletterData = newsletterDoc.data();
+
+        // Check if the email exists in the recipient list
+        if (!newsletterData.recipientList.includes(email)) {
+            throw new Error(`Email ${email} not found in the recipient list.`);
+        }
+
+        // Remove the email from the recipient list
+        const updatedRecipientList = newsletterData.recipientList.filter((recipientEmail: string) => recipientEmail !== email);
+
+        // Update the document in Firestore
+        await newsletterDoc.ref.update({ recipientList: updatedRecipientList });
+
+        return { message: `Email ${email} successfully removed from the newsletter ${name}.` };
+    } catch (error) {
+        console.error('Error removing email from newsletter:', error);
+        return {error: error}
+    }
+}
+
 // Function to get newsletters with recipient count from Firestore
 async function getNewslettersWithRecipientCount() {
     try {
@@ -137,7 +170,7 @@ app.post('/send-newsletter', async (req: Request, res: Response) => {
             email,
             subject,
             text,
-            html.replace('{{unsubscribeUrl}}', process.env.API_URL + `/unsubscribe?email=${encodeURIComponent(email)}`),
+            html.replace('{{unsubscribeUrl}}', process.env.API_URL + `/unsubscribe?email=${encodeURIComponent(email)}&name=${encodeURIComponent(name)}`),
             destination
         );
         }
@@ -192,12 +225,16 @@ app.get('/newsletters', async (req: Request, res: Response) => {
 // endpoint to unsubscribe
 app.get('/unsubscribe', (req: Request, res: Response) => {
     const email = req.query.email as string;
+    const name = req.query.name as string;
 
-    if (email) {
+    console.log(req.query);
+    
+    if (email && name) {
     // Logic to handle unsubscription
-    res.send(`Email ${email} has been unsubscribed.`);
+        var response = removeEmailFromNewsletter(name, email)
+        res.send( `<p>Email <strong>${email}</strong> has been <u>unsubscribed</u> from the newsletter <strong>${name}</strong></p>`);
     } else {
-    res.status(400).send('Email is required to unsubscribe.');
+        res.status(400).send('Email and name is required to unsubscribe.');
     }
 });
 
