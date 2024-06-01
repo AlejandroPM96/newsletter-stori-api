@@ -32,9 +32,10 @@ app.use(express.json());
 const unlinkAsync = promisify(fs.unlink);
 
 export function authenticateToken(req: Request, res: Response, next: NextFunction) {
+    
+    console.log("req: " + req.body)
     const authHeader = req.headers['authorization'];
     const token = authHeader && authHeader.split(' ')[1];
-
     if (token == null) {
         return res.status(401).json({ message: 'Token is missing' });
     }
@@ -235,9 +236,10 @@ app.post('/send-newsletter', authenticateToken, async (req: Request, res: Respon
 });
 
 // endpoint to register the newsletter in Firestore
-app.post('/register-newsletter', authenticateToken, async (req: Request, res: Response) => {
+app.post('/register-newsletter', async (req: Request, res: Response) => {
+    console.log("Registering newsletter: ", req.body)
     const name  = req.body.name;
-    const recipientList = JSON.parse(req.body.recipientList);
+    const recipientList = req.body.recipientList;
     const attachmentPath = req.body.attachmentPath;
     const subject = req.body.subject;
     const text  = req.body.text;
