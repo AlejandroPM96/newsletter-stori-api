@@ -14,12 +14,11 @@ admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
   storageBucket: process.env.STORAGE_BUCKET_URL  // Your Firebase Storage bucket URL
 });
-
+const port = process.env.PORT || 8080;
 const bucket = admin.storage().bucket();
 const firestore = admin.firestore();
 
 const app = express();
-const port = 3000;
 
 const cors = require('cors');
 const corsOptions ={
