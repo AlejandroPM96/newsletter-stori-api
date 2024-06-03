@@ -9,9 +9,9 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 // Initialize Firebase
-const serviceAccount = require('../serviceAccountKey.json');
+// const serviceAccount = require('../serviceAccountKey.json');
 admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount),
+//   credential: admin.credential.cert(serviceAccount),
   storageBucket: process.env.STORAGE_BUCKET_URL  // Your Firebase Storage bucket URL
 });
 const port = process.env.PORT || 8080;

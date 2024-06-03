@@ -12,7 +12,6 @@ RUN npm install
 
 # Copy the rest of the application code
 COPY . ./
-COPY serviceAccountKey.json /usr/src/app/serviceAccountKey.json
 
 # Expose the port the app runs on
 EXPOSE 8080
